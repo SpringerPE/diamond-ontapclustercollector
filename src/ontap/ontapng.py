@@ -1019,10 +1019,11 @@ def main(argv):
         sys.exit(0)
     elif args[0] == 'objects':
         print("Available objects:")
-        for k,v in sorted(netapp.get_objects().iteritems()):
+        objects = netapp.get_objects()
+        for k,v in sorted(objects.iteritems()):
             print("\t %s" % k)
             print("\t\t Description: %s" % v[0])
-        print("\n %d objects found" % len(netapp.get_objects()))
+        print("\n %d objects found" % len(objects))
     elif args[0] == 'info':
         try:
             item = args[1]
@@ -1031,13 +1032,14 @@ def main(argv):
             sys.exit(1)
         print("Counters for %s:" % item)
         try:
-            for k,v in sorted(netapp.get_info(item).iteritems()):
+            info = netapp.get_info(item)
+            for k,v in sorted(info.iteritems()):
                 (unit, properties, base, priv, desc, labels) = v
                 print("%s => unit=%s, priv_level=%s, array_labels=%s" %
                     (k, unit, priv, labels))
                 print("\t properties=%s, base=%s" % (properties, base))
                 print("\t %s \n" % desc)
-            print("%d metrics found" % len(netapp.get_info(item)))
+            print("%d metrics found" % len(info))
         except Exception as e:
             print(str(e))
             sys.exit(1)
@@ -1053,9 +1055,10 @@ def main(argv):
             filter = ''
         print("Instances of %s (filter='%s'):" % (item, filter))
         try:
-            for i in sorted(netapp.get_instances(item, filter)):
+            instances = netapp.get_instances(item, filter)
+            for i in sorted(instances):
                 print("\t %s" % i)
-            print("%d instances found" % len(netapp.get_instances(item, filter)))
+            print("%d instances found" % len(instances))
         except Exception as e:
             print(str(e))
             sys.exit(1)
