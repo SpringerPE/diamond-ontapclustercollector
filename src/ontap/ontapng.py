@@ -1019,11 +1019,11 @@ def main(argv):
         sys.exit(0)
     elif args[0] == 'objects':
         print("Available objects:")
-        counter = 0
-        for i in netapp.get_objects():
-            print("\t %s" % i)
-            counter += 1
-        print("\n %d objects found" % counter)
+        objects = netapp.get_objects()
+        for k,v in sorted(objects.iteritems()):
+            print("\t %s" % k)
+            print("\t\t Description: %s" % v[0])
+        print("\n %d objects found" % len(objects))
     elif args[0] == 'info':
         try:
             item = args[1]
@@ -1031,16 +1031,15 @@ def main(argv):
             print("You need to specify the object!")
             sys.exit(1)
         print("Counters for %s:" % item)
-        counter = 0
         try:
-            for k,v in netapp.get_info(item).iteritems():
+            info = netapp.get_info(item)
+            for k,v in sorted(info.iteritems()):
                 (unit, properties, base, priv, desc, labels) = v
                 print("%s => unit=%s, priv_level=%s, array_labels=%s" %
                     (k, unit, priv, labels))
                 print("\t properties=%s, base=%s" % (properties, base))
                 print("\t %s \n" % desc)
-                counter += 1
-            print("%d metrics found" % counter)
+            print("%d metrics found" % len(info))
         except Exception as e:
             print(str(e))
             sys.exit(1)
@@ -1055,12 +1054,11 @@ def main(argv):
         except:
             filter = ''
         print("Instances of %s (filter='%s'):" % (item, filter))
-        counter = 0
         try:
-            for i in netapp.get_instances(item, filter):
+            instances = netapp.get_instances(item, filter)
+            for i in sorted(instances):
                 print("\t %s" % i)
-                counter += 1
-            print("%d instances found" % counter)
+            print("%d instances found" % len(instances))
         except Exception as e:
             print(str(e))
             sys.exit(1)
@@ -1078,19 +1076,17 @@ def main(argv):
             except Exception as e:
                 print(str(e))
                 sys.exit(1)
-        counter = 0
         try:
             m, t, inst_t = netapp.get_metrics(item, inst)
         except Exception as e:
             print(str(e))
             sys.exit(1)
-        for k,v in m.iteritems():
+        for k,v in sorted(m.iteritems()):
             print("%s (%s):" % (k,  datetime.datetime.fromtimestamp(inst_t)))
-            for k2, v2 in v.iteritems():
+            for k2, v2 in sorted(v.iteritems()):
                 print("\t %s = %s" % (k2, v2))
             print
-            counter += 1
-        print("%d instances found" % counter)
+        print("%d instances found" % len(m))
     else:
         print("What do you want?")
 
