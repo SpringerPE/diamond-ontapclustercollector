@@ -21,12 +21,13 @@ import datetime
 from collections import namedtuple as NamedTuple
 from string import Template
 
-if __name__ == "__main__":
-    # workaround to be able to run this script as standalone program
-    Collector = object
-else:
+try:
     from diamond.metric import Metric
     from diamond.collector import Collector
+except ImportError:
+    # workaround to be able to run this script as standalone program
+    # Additional workaround to allow this script to act as a library
+    Collector = object
 
 try:
     netappsdkpath = os.path.join('lib', 'netapp')
@@ -779,6 +780,54 @@ class NetAppMetrics:
             counters[name] = (unit, properties, base, priv, desc, labels)
         return counters
 
+    def _invoke(self, cmd):
+        '''Expose underlying NetApp API for invoking'''
+        return self.server.invoke(cmd)
+
+    def _invoke_elem(self, cmd):
+        '''Expose underlying NetApp API for element invoking'''
+        if isinstance(cmd, NaServer.NaElement):
+            return self.server.invoke_elem(cmd)
+        raise TypeError('Provided cmd is not of type NaElement')
+
+    def _decode_elements2dict(self, head, filter=None):
+        '''This function is a function that can take the results from
+           an invoke call from the NetApp API and break it down to a
+           json-styled Python dict object.'''
+        if filter is not None and (hasattr(filter, "__getitem__") or
+                hasattr(filter, "__iter__")):
+            if hasattr(filter, "strip"):
+                filter = [filter]
+        elif filter is None:
+            pass
+        else:
+            raise TypeError('filter (%s) is of an unknown type!' % filter)
+
+        if head.has_children() == 1:
+            if sum([item.has_children() for item in head.children_get()]) == 0:
+                if filter is not None:
+                    return {head.element['name']:
+                      {item.element['name']: item.element['content']
+                      for item in head.children_get()
+                      if item.element['name'] in filter}}
+                else:
+                    return {head.element['name']: {item.element['name']:
+                      item.element['content'] for item in head.children_get()}}
+            elif sum([item.has_children()
+              for item in head.children_get()]) == len(head.children_get()):
+                return [self._decode_elements2dict(item,filter)
+                  for item in head.children_get()]
+            else:
+                ans = {}
+                for item in head.children_get():
+                    if item.has_children() == 1:
+                        ans[item.element['name']] = \
+                          self._decode_elements2dict(item,filter)
+                    else:
+                        ans[item.element['name']] = item.element['content']
+                return ans
+        else:
+            return head.element
 
     def __sevenm_instances(self, kind, filter=''):
         instances_list = []
@@ -960,7 +1009,7 @@ class NetAppMetrics:
             return self.__sevenm_metrics(kind, instances, metrics)
 
 
-
+# TODO: Change to argparse
 # command line
 
 def usage(program):
