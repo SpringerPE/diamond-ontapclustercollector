@@ -168,7 +168,7 @@ class OntapClusterCollector(Collector):
             return self.connections
         return self.connections[to]
 
-    def __get_metric(self, metric, info_metrics, label, publish=True):
+    def __get_metric(self, device, metric, info_metrics, label, publish=True):
         """Maps each kind of metric with a number and work out the label.
 
         Where:
@@ -269,6 +269,7 @@ class OntapClusterCollector(Collector):
                 try:
                     (pretty, unit, prop, base, priv, publish) = \
                         self.__get_metric(
+                            device,
                             metric,
                             info_metrics,
                             cobj_metrics[metric],
@@ -287,7 +288,12 @@ class OntapClusterCollector(Collector):
                 if metric not in obj_metrics:
                     try:
                         obj_metrics[metric] = self.__get_metric(
-                            metric, info_metrics, metric, False)
+                            device, 
+                            metric, 
+                            info_metrics, 
+                            metric, 
+                            False
+                        )
                         counter_metrics += 1
                     except:
                         msg = "Not found metric '%s' for '%s'"
@@ -297,7 +303,12 @@ class OntapClusterCollector(Collector):
                 if metric not in obj_metrics:
                     try:
                         obj_metrics[metric] = self.__get_metric(
-                            metric, info_metrics, None, False)
+                            device, 
+                            metric, 
+                            info_metrics, 
+                            None, 
+                            False
+                        )
                         counter_metrics += 1
                     except:
                         msg = "Not found metric '%s' for '%s'"
