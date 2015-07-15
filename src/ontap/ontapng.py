@@ -848,57 +848,31 @@ class NetAppMetrics:
             return self.server.invoke_elem(cmd)
         raise TypeError('Provided cmd is not of type NaElement')
 
-    def _decode_elements2dict(self, head, filter=None):
-        '''This function is a function that can take the results from
-           an invoke call from the NetApp API and break it down to a
-           json-styled Python dict object.'''
-        if filter is not None and (
-                hasattr(
-                    filter, "__getitem__") or hasattr(filter, "__iter__")):
-            if hasattr(filter, "strip"):
-                filter = [filter]
-        elif filter is None:
-            pass
-        else:
-            raise TypeError('filter (%s) is of an unknown type!' % filter)
-
+    def _decode_elements2dict(self, head, listfilter=None, output={}):
+        '''This function take the results from an invoke call from the NetApp 
+            API and break it down to a Python dict object.'''
+        if listfilter is not None:
+            if not (hasattr(listfilter, "__iter__") or 
+                hasattr(filter, "__getitem__")):
+                raise TypeError('listfilter is no a iterable!')
         if head.has_children() == 1:
-            if sum([item.has_children() for item in head.children_get()]) == 0:
-                if filter is not None:
-                   return {
-                        head.element['name']: {
-                            item.element['name']: item.element['content']
-                            for item in head.children_get()
-                            if item.element['name'] in filter
-                        }
-                    }
+            aux = {}
+            for child in head.children_get():
+                if child.has_children() == 1:
+                    aux = self._decode_elements2dict(child, listfilter, aux)
                 else:
-                    return {
-                        head.element['name']: {
-                            item.element['name']: item.element['content']
-                            for item in head.children_get()
-                        }
-                    }
-            elif sum(
-                [
-                    item.has_children()
-                    for item in head.children_get()
-                    ]) == len(head.children_get()):
-                return [
-                    self._decode_elements2dict(item, filter)
-                    for item in head.children_get()
-                ]
-            else:
-                ans = {}
-                for item in head.children_get():
-                    if item.has_children() == 1:
-                        ans[item.element['name']] = \
-                          self._decode_elements2dict(item, filter)
-                    else:
-                        ans[item.element['name']] = item.element['content']
-                return ans
+                    if listfilter is not None and \
+                        child.element['name'] not in listfilter:
+                        continue;
+                    aux[child.element['name']] = child.element['content']
+            output[head.element['name']] = aux
         else:
-            return head.element
+            if listfilter is not None:
+                if child.element['name'] in listfilter:
+                    output[head.element['name']] = head.element['content']
+            else: 
+                output[head.element['name']] = head.element['content']
+        return output
 
     def __sevenm_instances(self, kind, filter=''):
         instances_list = []
