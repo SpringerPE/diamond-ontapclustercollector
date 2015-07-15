@@ -1,0 +1,3 @@
+[submodule "diamond"]
+	path = diamond
+	url = git@github.com:python-diamond/Diamond.git
