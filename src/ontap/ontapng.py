@@ -1087,8 +1087,8 @@ Where <action> could be:
  * metrics <object> [instace]: returns all counters for all instances
    or if one instances is provided, only for that one.
 
-(c) Jose Riguera Lopez, November 2003
-<jose.riguera@springer.com>
+(c) Jose Riguera Lopez, 2013-2015 <jose.riguera@springer.com>
+
     """.format(program)
 
 
