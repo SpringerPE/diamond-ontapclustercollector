@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 #
-# (c) 2013, Jose Riguera Lopez, <jose.riguera@springer.com>
+# (c) 2013-2015, Jose Riguera Lopez, <jose.riguera@springer.com>
 #
 # This plugin/program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as published
@@ -454,7 +454,7 @@ class OntapClusterCollector(Collector):
                                     " '%s': %s s"),
                                 metrics_path, time_delta)
                     self.last_collect_time[device][metrics_path] = instance_t
-                    # self.last_collect_time[device][metrics_path] = \
+                    #self.last_collect_time[device][metrics_path] = \
                     #   times[instance]
 
                     # process all metrics
@@ -628,11 +628,9 @@ class OntapClusterCollector(Collector):
                     derivative_y = float(self.config['interval'])
                 else:
                     derivative_y = interval
-
             result = derivative_x / derivative_y
-
         except Exception as e:
-            msg = "Previous value for '%s' not found!. First time?" % str(e)
+            msg = "Previous value for '%s' not found!. First time?"
             self.log.warning(msg, name)
             result = 0.0
         return result
@@ -986,7 +984,7 @@ class NetAppMetrics:
             name = name.replace('.', '_').strip('_')
             name = name.replace('/', '.').strip('.')
             name = re.sub(r'[^a-zA-Z0-9._]', '_', name)
-            # name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+            #name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
             metrics[name] = instance_data
             # Keep track of how long has passed since we checked last
             times[name] = time.time()
