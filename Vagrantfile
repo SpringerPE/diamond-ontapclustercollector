@@ -67,9 +67,19 @@ Vagrant.configure(2) do |config|
   config.vm.provision "shell", inline: <<-SHELL
      sudo apt-get update
      sudo apt-get install -y python-minimal  python-configobj python-psutil python-setuptools
+     # install diamond
      cd /vagrant/diamond && sudo python setup.py install
-     sudo cp -v /vagrant/conf/*.{conf,template} /etc/diamond/collectors/
+     # setup Diamond
+     sudo mkdir -p /var/log/diamond
+     sudo cp -v /vagrant/conf/diamond.conf /etc/diamond/
+     # install OntapClusterCollector
+     sudo cp -av /vagrant/src/ontap /usr/local/share/diamond/collectors/
+     sudo cp -v /vagrant/conf/OntapClusterCollector.conf* /etc/diamond/collectors/
+     sudo cp -v /vagrant/conf/OntapClusterCollector*.template /etc/diamond/collectors/
      sudo cp -v /vagrant/conf/diamond-ontap-configurator.sh /usr/local/bin
+     # setup OntapClusterCollector
      sudo diamond-ontap-configurator.sh -c /etc/diamond/collectors/OntapClusterCollector.conf add netapp 10.0.0.1 user password
+     # launch Diamond
+     #diamond -f -l --skip-change-user --skip-fork -c /etc/diamond/diamond.conf
   SHELL
 end

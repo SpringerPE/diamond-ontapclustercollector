@@ -4,9 +4,7 @@
 # (c) 2013 Jose Riguera <jriguera@gmail.com>
 # Licensed under GPLv3
 
-TEMPLATE=''
-DEF_TEMPLATE='vfiler-8.x.template'
-CONF_FILE=''
+DEF_TEMPLATE='OntapClusterCollector.vfiler-8.template'
 DEF_CONF_FILE='OntapClusterCollector.conf'
 
 # Other variables
@@ -230,6 +228,8 @@ list_action() {
 }
 
 # Main Program
+CONF_FILE=''
+TEMPLATE=''
 # Parse the input
 # See more in http://mywiki.wooledge.org/BashFAQ/035
 OPTIND=1 # Reset is necessary if getopts was used previously in the script.
