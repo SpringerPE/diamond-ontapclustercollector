@@ -169,8 +169,6 @@ enabled = True
 path_prefix = netapp
 reconnect = 60
 hostname_method = none
-# Sequential or Threaded
-method = Threaded
 splay = 15
 interval = 45
 
