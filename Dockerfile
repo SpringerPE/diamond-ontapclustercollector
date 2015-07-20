@@ -29,7 +29,7 @@ RUN apt-get install -y python-minimal python-pip python-configobj python-psutil 
 RUN pip install diamond 
 
 # Install OntapClusterCollector
-ADD src/ontap /usr/local/share/diamond/collectors/
+ADD src/ /usr/local/share/diamond/collectors/
 ADD conf/OntapClusterCollector.conf* conf/OntapClusterCollector*.template /etc/diamond/collectors/
 ADD conf/diamond-ontap-configurator.sh /usr/local/bin/
 
@@ -38,12 +38,8 @@ ADD docker/bin/ /usr/bin/
 ADD docker/confd/ /etc/confd/
 ADD docker/init/ /etc/my_init.d/
 
-# Enable or disable pipework by defining the location 
-#ENV PIPEWORK_BIN /usr/bin/pipework
-ENV CONFD_BIN /usr/bin/confd
-
 # runinit
-RUN mkdir /etc/service/{confd,diamond}
+RUN mkdir /etc/service/confd && mkdir /etc/service/diamond
 ADD docker/confd.sh /etc/service/confd/run
 ADD docker/diamond.sh /etc/service/diamond/run
 

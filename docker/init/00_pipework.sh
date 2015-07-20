@@ -1,5 +1,5 @@
-#!/bin/bash -e
+#!/bin/bash
 
-if [ ! -z "$PIPEWORK_BIN" ] && [ -x "$PIPEWORK_BIN" ]; then
-  $PIPEWORK_BIN --wait
+if command -v pipework >/dev/null 2>&1; then
+	pipework --wait
 fi
