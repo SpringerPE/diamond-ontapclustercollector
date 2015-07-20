@@ -116,11 +116,11 @@ hostname = {{ getv "/diamond/collectors/hostname" }}
 # such as: %(path_prefix)s.$(hostname)s.$(path_suffix)s.$(metric)s
 # path_prefix = servers
 # path_suffix =
-{{if exists "/diamond/collectors/path_prefix"}}
-path_prefix = {{ getv "/diamond/collectors/path_prefix" }}
+{{if exists "/diamond/collectors/pathprefix"}}
+path_prefix = {{ getv "/diamond/collectors/pathprefix" }}
 {{end}}
-{{if exists "/diamond/collectors/path_suffix"}}
-path_suffix = {{ getv "/diamond/collectors/path_suffix" }}
+{{if exists "/diamond/collectors/pathsuffix"}}
+path_suffix = {{ getv "/diamond/collectors/pathsuffix" }}
 {{end}}
 
 # Path Prefix for Virtual Machines
@@ -129,8 +129,8 @@ path_suffix = {{ getv "/diamond/collectors/path_suffix" }}
 # reporting per VM metrics is "instances", and metric foo for VM
 # bar will be reported as: instances.bar.foo...
 # instance_prefix = instances
-{{if exists "/diamond/collectors/instance_prefix"}}
-instance_prefix = {{ getv "/diamond/collectors/instance_prefix" }}
+{{if exists "/diamond/collectors/instanceprefix"}}
+instance_prefix = {{ getv "/diamond/collectors/instanceprefix" }}
 {{end}}
 
 # Default Poll Interval (seconds)
