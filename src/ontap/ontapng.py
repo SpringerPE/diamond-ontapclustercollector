@@ -173,6 +173,7 @@ class OntapClusterCollector(Collector):
                 except (KeyError, ValueError) as e:
                     msg = "Incorrect device '%s' configuration: '%s'"
                     self.log.error(msg, device, str(e))
+                    raise
                 else:
                     self.log.info("Connected to device '%s'", device)
         if to is None:
@@ -340,7 +341,6 @@ class OntapClusterCollector(Collector):
             self.log.error("Unable to import NetApp python API!")
             return
         super(OntapClusterCollector, self).process_config()
-        print "--- process_config ", self.config
         if 'devices' in self.config:
             for device in self.config['devices']:
                 if device not in self.dev_running:
@@ -407,10 +407,9 @@ class OntapClusterCollector(Collector):
                 )
                 return
             self.dev_running[device] = True
-            server = self._connect(device)
             try:
                 publish = int(self.config['devices'][device]['publish'])
-                records = self.collect_device(self, device, interval, publish)
+                records = self.collect_device( device, interval, publish)
             except Exception as e:
                 self.log.error(str(e))
             else:
