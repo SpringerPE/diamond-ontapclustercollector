@@ -7,15 +7,17 @@ hostname_method = none
 splay = 15
 interval = 45
 
+# Warning, all devices are gathered in sequential mode, single thread/process
 [devices]
 
-# Device in cluster mode:
+# Device in cluster mode (v 8.x):
 
-        [[cluster]]
-        ip = 123.123.123.123
+    	[[cluster]]
+        ip = 10.3.3.176
         user = admin
         password = password
         publish = 1
+        apiversion = 1.15
 
                 [[[aggregate=nodes.${node_name}.aggr.${instance_name}]]]
                 total_transfers = rate_ops
@@ -47,7 +49,7 @@ interval = 45
                 [[[processor=nodes.${node_name}.processor.${instance_name}]]]
                 processor_busy = pct_busy
                 processor_elapsed_time = time_elapsed
-		domain_busy = -
+                domain_busy = -
 
                 [[[system=nodes.${node_name}.${instance_name}]]]
                 nfs_ops = rate_ops_nfs
@@ -138,6 +140,10 @@ interval = 45
                 write_total = cnt_ops_write
                 write_avg_latency = avg_latency_micros_nfsv3_write
                 read_avg_latency = avg_latency_micros_nfsv3_read
+                nfsv3_write_throughput = rate_throughput_nfsv3_write
+                nfsv3_read_throughput = rate_throughput_nfsv3_read
+                nfsv3_throughput = rate_throughput_nfsv3
+                nfsv3_dnfs_ops = rate_ops_nfsv3_oracle
 
                 [[[iscsi_lif:vserver=vservers.${instance_name}.iscsi]]]
                 iscsi_read_ops = rate_ops_iscsi_read
@@ -148,14 +154,25 @@ interval = 45
                 data_in_sent = cnt_blocks_recv
                 data_out_blocks = cnt_blocks_sent
 
+                [[[cifs=vservers.${instance_name}.cifs]]]
+                cifs_ops = rate_ops_cifs
+                cifs_read_ops = rate_ops_cifs_read
+                cifs_write_ops = rate_ops_cifs_write
+                cifs_latency = avg_latency_micros_cifs
+                cifs_write_latency = avg_latency_micros_cifs_write
+                cifs_read_latency = avg_latency_micros_cifs_read
+                connected_shares = cnt_cifs_connected_shares
+                reconnection_requests_total = cnt_cifs_reconnection_requests_total
+
 
 # Old vfiler 7.x:
 
-        [[name]]
-        ip = 123.123.123.123
+        [[sever-mode]]
+        ip = 172.29.1.161
         user = root
         password = password
         publish = 1
+        apiversion = 1.12
 
                 [[[aggregate=aggregate.@]]]
                 total_transfers = rate_ops
@@ -171,7 +188,7 @@ interval = 45
                 [[[processor=processor.@]]]
                 processor_busy = pct_busy
                 processor_elapsed_time = time_elapsed
-		domain_busy = -
+                #domain_busy = -
 
                 [[[system=@]]]
                 nfs_ops = rate_ops_nfs
@@ -280,7 +297,7 @@ interval = 45
                 nfsv3_read_latency = avg_latency_ms_nfsv3_read
                 nfsv3_op_count = cnt_ops_null, cnt_ops_getattr, cnt_ops_setattr, cnt_ops_lookup, cnt_ops_access, cnt_ops_readlink, cnt_ops_read, cnt_ops_write, cnt_ops_create, cnt_ops_mkdir, cnt_ops_symlink, cnt_ops_mknod, cnt_ops_remove, cnt_ops_rmdir, cnt_ops_rename, cnt_ops_link, cnt_ops_readdir, cnt_ops_readdirplus, cnt_ops_fsstat, cnt_ops_fsinfo, cnt_ops_pathconf, cnt_ops_commit
                 nfsv3_op_percent = pct_ops_null, pct_ops_getattr, pct_ops_setattr, pct_ops_lookup, pct_ops_access, pct_ops_readlink, pct_ops_read, pct_ops_write, pct_ops_create, pct_ops_mkdir, pct_ops_symlink, pct_ops_mknod, pct_ops_remove, pct_ops_rmdir, pct_ops_rename, pct_ops_link, pct_ops_readdir, pct_ops_readdirplus, pct_ops_fsstat, pct_ops_fsinfo, pct_ops_pathconf, pct_ops_commit
-                
+
                 [[[cifs=cifs.@]]]
                 cifs_ops = rate_ops
                 cifs_op_count = cnt_delta_ops
