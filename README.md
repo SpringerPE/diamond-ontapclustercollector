@@ -31,8 +31,22 @@ Where <action> could be:
     
 ```
 
-This plugin supports Diamond v3.x and Diamond v4.x, please check the tags and
-branchs of this repository.
+This plugin supports Diamond v4.x and Diamond v3.x, please check the tags and
+branchs of this repository. The parent class Collector provided by Diamond has 
+changed with Diamond 4.x, it is not compatible with Diamond v3.x because of 
+the changes in the scheduler system. Starting with Diamond 4.x all the devices 
+defined in the configuration file are gathered in sequencial mode, be careful!. 
+If you want to have a process per device (like threads in version 0.1.x with Diamond v3.x), 
+just define different configuration files per device, by creating a file like
+`OntapClusterCollector instance.conf` [1], have a look at the Diamond documentation.
+
+[1] Yes ... WTF!, a configuration file with whitespace!. I think it is the
+only program I know where authors decided to do in that way, using configuration
+files with white spaces. I do not know if it is compatible with LSB, but I
+suggested them using a more elegant way to define instances like for example 
+`OntapClusterCollector.instance.conf` (keeping the compatibility with white spaces), 
+and they did not accept ... I do not see advantages using white spaces, I see it
+a way to look for problems, but it is my opinion.
 
 SDK
 ===
