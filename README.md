@@ -86,6 +86,7 @@ hostname_method = none
 splay = 10
 interval = 50  # Could be 60 ... but just to avoid gaps
 
+# Warning, all devices are gathered in sequential mode, single thread/process
 [devices]
 
 #    [[cluster]]
@@ -110,7 +111,10 @@ interval = 50  # Could be 60 ... but just to avoid gaps
 #        user_writes = rate_ops_writes
 #        cp_reads = -
 #
-	[[cluster]]
+
+# Device in cluster mode (v 8.x):
+
+    	[[cluster]]
         ip = 10.3.3.176
         user = admin
         password = password
@@ -263,6 +267,8 @@ interval = 50  # Could be 60 ... but just to avoid gaps
                 reconnection_requests_total = cnt_cifs_reconnection_requests_total
 
 
+# Old vfiler 7.x:
+
         [[sever-mode]]
         ip = 172.29.1.161
         user = root
@@ -403,6 +409,7 @@ interval = 50  # Could be 60 ... but just to avoid gaps
                 cifs_write_latency = avg_latency_ms_writes
                 cifs_read_latency = avg_latency_ms_reads
 
+#EOF
 ```
 
 The format for each object is `[[[OBJECT-TYPE=PRETTY.PATH]]]`, where `OBJECT-TYPE` is a type 
