@@ -763,7 +763,7 @@ class NetAppMetrics:
         self._get_version()
 
     def _connect(self, device, user, password, timeout=None, method='HTTP'):
-        self.server = NaServer.NaServer(device, 1, 15)
+        self.server = NaServer.NaServer(device, 1, 12)
         self.server.set_transport_type(method)
         self.server.set_style('LOGIN')
         self.server.set_admin_user(user, password)
