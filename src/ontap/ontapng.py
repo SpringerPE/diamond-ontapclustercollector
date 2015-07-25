@@ -68,6 +68,7 @@ http_timeout = 45           # timeout
     ip = 123.123.123.123
     user = root
     password = strongpassword
+    apiversion = 1.15
     publish = 1   # 1 = publish all metrics
                   # 2 = do not publish zeros
                   # 0 = do not publish
@@ -166,7 +167,7 @@ class OntapClusterCollector(Collector):
             if to is None or to == device:
                 try:
                     server = NetAppMetrics(
-                        c['ip'], c['user'], c['password'],
+                        c['ip'], c['user'], c['password'], c['apiversion'],
                         self.config['http_timeout'])
                     self.reconnects[device] = int(self.config['reconnect'])
                     self.connections[device] = server
@@ -776,19 +777,28 @@ class NetAppMetrics:
 
     perf_max_records = 500
 
-    def __init__(self, device, user, password, timeout=None, vserver=''):
+    def __init__(self, device, user, password, 
+                 apiversion='1.12', timeout=None, vserver=''):
         self.vserver = None
         self.device = None
         self.clustered = False
         self.generation = '0'
         self.major = '0'
         self.minor = '0'
-        self._connect(device, user, password, timeout)
+        self.apimajor = 0
+        self.apiminor = 0
+        self._connect(device, user, password, apiversion, timeout)
         self._set_vserver(vserver)
         self._get_version()
 
-    def _connect(self, device, user, password, timeout=None, method='HTTP'):
-        self.server = NaServer.NaServer(device, 1, 15)
+    def _connect(self, device, user, password, apiversion, 
+                 timeout=None, method='HTTP'):
+        try:
+            self.apimajor = int(apiversion.split('.')[0])        
+            self.apiminor = int(apiversion.split('.')[1])
+        except:
+            raise ValueError("incorrect API version: '%s'" % apiversion)
+        self.server = NaServer.NaServer(device, self.apimajor, self.apiminor)
         self.server.set_transport_type(method)
         self.server.set_style('LOGIN')
         self.server.set_admin_user(user, password)
@@ -1111,7 +1121,7 @@ and info from NetApp devices. It supports 7-Mode anc C-Mode.
 Usage:
 
     {0} [-h | --help]
-    {0} -s <server> -u <user> -p <password> [action]
+    {0} [-v <api.version>] -s <server> -u <user> -p <password> [action]
 
 Where <action> could be:
 
@@ -1127,8 +1137,8 @@ Where <action> could be:
 
 
 def main(argv):
-    sort_ops = "hs:u:p:f:"
-    long_ops = ["help", "server=", "user=", "password=", "filter="]
+    sort_ops = "hv:s:u:p:f:"
+    long_ops = ["help", "api=", "server=", "user=", "password=", "filter="]
     try:
         opts, args = getopt.getopt(argv[1:], sort_ops, long_ops)
     except getopt.GetoptError as err:
@@ -1139,10 +1149,13 @@ def main(argv):
     user = ''
     password = ''
     filter = ''
+    apiversion = '1.12'
     for o, a in opts:
         if o in ("-h", "--help"):
             usage(argv[0])
             sys.exit()
+        elif o in ("-v", "--api"):
+            apiversion = a
         elif o in ("-s", "--server"):
             server = a
         elif o in ("-u", "--user"):
@@ -1154,7 +1167,7 @@ def main(argv):
     if not server or not user:
         usage(argv[0])
         sys.exit(2)
-    netapp = NetAppMetrics(server, user, password)
+    netapp = NetAppMetrics(server, user, password, apiversion)
     print(
             "Server=%s, version=%s.%s.%s, date=%s" % (
                 server,
