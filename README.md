@@ -69,6 +69,15 @@ gathering metrics from almost any source.
 Diamond collectors run within the diamond process and collect metrics that can 
 be published to a graphite server.
 
+To get the diamond code using the git reference on each branch, just type:
+
+```
+$ git submodule init
+$ git submodule update
+
+# now you can play using vagrant
+$ vagrant up
+```
 
 Configuration 
 =============
