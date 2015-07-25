@@ -1,0 +1,13 @@
+backend = "etcd"
+confdir = "/etc/confd"
+debug = false
+interval = 300
+nodes = [
+  "http://10.1.42.1:4001",
+]
+noop = false
+prefix = "/"
+quiet = true
+scheme = "http"
+verbose = true
+watch = true
