@@ -22,14 +22,6 @@ from collections import namedtuple as NamedTuple
 from string import Template
 
 try:
-    from diamond.metric import Metric
-    from diamond.collector import Collector
-except ImportError:
-    # workaround to be able to run this script as standalone program
-    # Additional workaround to allow this script to act as a library
-    Collector = object
-
-try:
     netappsdkpath = os.path.join('lib', 'netapp')
     netappsdkpath = os.path.join(
         os.path.abspath(os.path.dirname(__file__)), netappsdkpath)
@@ -38,6 +30,24 @@ try:
     NaServer  # workaround for pyflakes issue #13
 except ImportError:
     raise
+
+try:
+    from diamond.metric import Metric
+    from diamond.collector import Collector
+except ImportError:
+    # workaround to be able to run this script as standalone program
+    # Additional workaround to allow this script to act as a library
+    Collector = object
+
+try:
+    import collectd
+    import logging
+    import configobj
+    netappcollectd = OntapClusterCollectorCollectd()
+    collectd.register_config(netappcollectd.configure)
+    collectd.register_config(netappcollectd.collect)
+except ImportError:
+    pass
 
 """
 The OntapClusterCollector collects metric from a NetApp installation using the
@@ -773,6 +783,72 @@ class OntapClusterCollector(Collector):
 
 
 # End of Diamond Collector Plugin
+
+
+# Class to define a Collectd plugin
+
+class OntapClusterCollectorCollectd(OntapClusterCollector):
+
+    class Metric:
+
+        def __init__(self, path, value, timestamp=0, precision=0, host=''):
+            self.path = path
+            self.value = value
+            self.timestamp = timestamp
+
+
+    def __init__(self, *args, **kwargs):
+        """Creates a new instance of the Ontap Collector class.
+
+        Returns a OntapClusterCollectorCollectd instance.
+        """
+        self.config = None
+        self.log = None
+        self.plugin_name = 'Collectd-OntapClusterCollector'
+        self.verbose = 1
+        self.plainmetrics = False
+        self.withtypes = False
+
+
+    def configure(self, conf):
+        for node in conf.children:
+            key = node.key.lower()
+            val = node.values[0]
+            if key == 'configfile':
+                try:
+                    self.configfile = os.path.abspath(val)
+                    self.config = configobj.ConfigObj(self.configfile)
+                except:
+                    collectd.warning("Plugin '%s' cannot read configfile '%s'" % val)
+            elif key == 'verbose':
+                self.verbose = int(val)
+            elif key == 'plainmetrics':
+                self.plainmetrics = bool(val)
+            elif key == 'withtypes':
+                self.withtypes = bool(val)
+            else:
+                collectd.warning("Plugin '%s', unknown config key: '%s'" % (self.plugin_name, key))
+        if self.config is not None:
+            self.process_config()
+
+
+    def publish_metric(self, metric):
+        mpath = metric.path.split('.')
+        sep = '_' if self.plainmetrics else ''
+        val = collectd.Values()
+        val.host = metric.host
+        val.plugin = self.plugin_name
+        val.plugin_instance = mpath[0]
+        val.time = metric.timestamp
+        val.type = 'absolute' if not self.withtypes else mpath[-1]
+        val.type_instance = sep.join(mpath[1:])
+        val.values = metric.value
+        val.dispatch()
+
+# End of Collectd plugin
+
+
+# NetAppMetrics
 
 class NetAppMetrics:
 
