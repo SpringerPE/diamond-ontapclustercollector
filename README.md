@@ -15,8 +15,8 @@ Standalone program and/or Diamond plugin to retrive metrics
 and info from NetApp devices. It supports 7-Mode anc C-Mode.
 Usage:
 
-    ./ontapng.py [-h | --help]
-    ./ontapng.py -s <server> -u <user> -p <password> [action]
+    src/ontap/ontapng.py [-h | --help]
+    src/ontap/ontapng.py -s <server> -u <user> -p <password> [action]
 
 Where <action> could be:
 
@@ -26,8 +26,7 @@ Where <action> could be:
  * metrics <object> [instace]: returns all counters for all instances
    or if one instances is provided, only for that one.
 
-(c) Jose Riguera Lopez, Springer SBM, November 2003
-<jose.riguera@springer.com>
+(c) Jose Riguera Lopez, 2013-2015 <jose.riguera@springer.com>
     
 ```
 
@@ -43,8 +42,8 @@ About Diamond
 =============
 
 Diamond is a python daemon that collects system metrics and publishes them to
-[Graphite](https://github.com/BrightcoveOS/Diamond/wiki/handler-GraphiteHandler)
-(and [others](https://github.com/BrightcoveOS/Diamond/wiki/Handlers)). It is
+[Graphite](https://github.com/python-diamond/Diamond/wiki/handler-GraphitePickleHandler)
+(and [others](https://github.com/python-diamond/Diamond/wiki/Handlers)). It is
 capable of collecting cpu, memory, network, i/o, load and disk metrics.  
 Additionally, it features an API for implementing custom collectors for 
 gathering metrics from almost any source.

@@ -763,7 +763,7 @@ class NetAppMetrics:
         self._get_version()
 
     def _connect(self, device, user, password, timeout=None, method='HTTP'):
-        self.server = NaServer.NaServer(device, 1, 15)
+        self.server = NaServer.NaServer(device, 1, 12)
         self.server.set_transport_type(method)
         self.server.set_style('LOGIN')
         self.server.set_admin_user(user, password)
@@ -951,9 +951,10 @@ class NetAppMetrics:
                 raise ValueError(msg % (kind, reason))
             next_tag = res.child_get_string("next-tag")
             counter = res.child_get_string("num-records")
-            for inst in res.child_get("attributes-list").children_get():
-                name = inst.child_get_string("uuid")
-                instances_list.append(name)
+            attr_list = res.child_get("attributes-list")
+            if attr_list:
+                for inst in attr_list.children_get():
+                    instances_list.append(inst.child_get_string("uuid"))
         return instances_list
 
     def get_instances(self, kind, filter=''):
