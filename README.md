@@ -31,6 +31,9 @@ Where <action> could be:
     
 ```
 
+This plugin supports Diamond v3.x and Diamond v4.x, please check the tags and
+branchs of this repository.
+
 SDK
 ===
 
@@ -390,14 +393,17 @@ interval = 50  # Could be 60 ... but just to avoid gaps
 
 The format for each object is `[[[OBJECT-TYPE=PRETTY.PATH]]]`, where `OBJECT-TYPE` is a type 
 of object available on the device. `PRETTY.PATH` is a string to tell the program how build the 
-parent path for all the metrics for each OBJECT-TYPE instance found. To see all the object's 
+parent path for all the metrics for each `OBJECT-TYPE` instance found. To see all the object's 
 type, instances and metrics just use the command line feature. This is the definition format:
-* `fixed.path.string`: just a static path to include in all instances.
-* `@` special variable to point to instance name reported by the API.
-* `${metric}`: reference to a metric available on the instance. A difference with the rest of the metrics,
-   this one can be a string, in that case you cannot reference it on the list of the metrics to gather.
+* `fixed.path.string`: strings, just a static path to include in all instances.
+* `@`: special variable to point to instance name reported by the API.
+* `${metric}`: reference to a metric name available on the instance. A difference with the rest 
+   of the metrics, is this one can be a string, in that case you cannot reference it on the list 
+   of the metrics to gather.
+You can mix those format to build a metric path.
 
-To specify the list of metrics to be gather per OBJECT-TYPE instance, the format is easy:
+
+To specify the list of metrics to be gather per `OBJECT-TYPE` instance, the format is easy:
 
 * `NetApp_api_metric = pretty_name`, meaning that it will rewrite the API metric name to `pretty_name` and send it to the handler.
 * `NetApp_api_array_metric = pretty_name1, pretty_name2 ...`, it does the same but for each metric in an array.
