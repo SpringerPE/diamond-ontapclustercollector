@@ -1,3 +1,8 @@
+# v0.2.0: Diamond v4.x support and Docker
+
+* Added suport for Diamond v4.x, now in master/develop branch. 
+* Added Docker using `confd` with `etcd` configuration (for Coreos). It will fallback to `env` backend if `etcd` is not found.  
+
 # v0.1.2: API version downgrade and attributes-list bugs fixed
 
 * API version 1.12 seems to be working on most NetApps (but with warnings on the newest Ontap versions).
