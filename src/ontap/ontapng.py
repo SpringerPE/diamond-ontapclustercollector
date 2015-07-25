@@ -403,22 +403,23 @@ class OntapClusterCollector(Collector):
             if self.dev_running[device]:
                 self.log.error(
                     "Cannot start metrics collection for '%s', another " \
-                    "thread is running (http_timeout=%i)" %
-                    (device, self.config['http_timeout'])
+                    "thread is running (http_timeout=%i)",
+                    device, 
+                    self.config['http_timeout']
                 )
                 return
             self.dev_running[device] = True
+            self.log.info("Starting metrics collection for '%s'", device)
             try:
                 publish = int(self.config['devices'][device]['publish'])
                 records = self.collect_device( device, interval, publish)
             except Exception as e:
                 self.log.error(str(e))
-            else:
-                self.log.info(
-                    "End collection for '%s' (%i metrics processed)",
-                    device,
-                    records
-                )
+            self.log.info(
+                "End collection for '%s' (%i metrics processed)",
+                device,
+                records
+            )
             self.dev_running[device] = False
 
 
@@ -428,7 +429,6 @@ class OntapClusterCollector(Collector):
         Returns the number of metrics processed.
         """
         max_interval = interval + interval * 0.5
-        self.log.info("Starting metrics collection for '%s'" % device)
         total_records = 0
         server = self._connect(device)
         # We're only able to query a single object at a time,
@@ -511,6 +511,7 @@ class OntapClusterCollector(Collector):
                     device
                 )
             total_records += records_counter
+        return total_records
 
 
     def _publish_metrics(self, device, instance, metrics_path, data,
