@@ -1,0 +1,170 @@
+################################################################################
+# Diamond Configuration File
+################################################################################
+
+################################################################################
+### Options for the server
+[server]
+# Handlers for published metrics.
+handlers={{if exists "/diamond/handler/archive"}}diamond.handler.archive.ArchiveHandler,{{end}}{{if exists "/diamond/handler/graphite"}}diamond.handler.graphite.GraphiteHandler,{{end}}{{if exists "/diamond/handler/graphitepickle"}}diamond.handler.graphitepickle.GraphitePickleHandler{{end}}
+
+# User diamond will run as
+# Leave empty to use the current user
+user = root
+
+# Group diamond will run as
+# Leave empty to use the current group
+group = root
+
+# Pid file
+pid_file = /var/run/diamond.pid
+
+# Directory to load collector modules from
+collectors_path = /usr/local/share/diamond/collectors/
+
+# Directory to load collector configs from
+collectors_config_path = /etc/diamond/collectors/
+
+# Directory to load handler configs from
+handlers_config_path = /etc/diamond/handlers/
+handlers_path = /usr/local/share/diamond/handlers/
+
+# Interval to reload collectors
+collectors_reload_interval = 3600
+
+
+################################################################################
+### Options for handlers
+[handlers]
+# daemon logging handler(s)
+keys = rotated_file
+
+### Defaults options for all Handlers
+[[default]]
+
+{{if exists "/diamond/handler/archive"}}
+[[ArchiveHandler]]
+# File to write archive log files
+{{if exists "/diamond/handler/archive/file"}}
+log_file = {{getv "/diamond/handler/archive/file"}}
+{{else}}
+log_file = /var/log/diamond/archive.log
+{{end}}
+# Number of days to keep archive log files
+{{if exists "/diamond/handler/archive/days"}}
+days = {{getv "/diamond/handler/archive/days"}}
+{{else}}
+days = 7
+{{end}}
+{{end}}
+
+{{if exists "/diamond/handler/graphite"}}
+[[GraphiteHandler]]
+{{if exists "/diamond/handler/graphite/host"}}
+host = {{getv "/diamond/handler/graphite/host"}}
+{{else}}
+host = localhost
+{{end}}
+{{if exists "/diamond/handler/graphite/port"}}
+host = {{getv "/diamond/handler/graphite/port"}}
+{{else}}
+host = 2003
+{{end}}
+timeout = 15
+# Batch size for metrics
+batch = 1
+{{end}}
+
+{{if exists "/diamond/handler/graphitepickle"}}
+[[GraphitePickleHandler]]
+{{if exists "/diamond/handler/graphitepickle/host"}}
+host = {{getv "/diamond/handler/graphitepickle/host"}}
+{{else}}
+host = localhost
+{{end}}
+{{if exists "/diamond/handler/graphitepickle/port"}}
+host = {{getv "/diamond/handler/graphitepickle/port"}}
+{{else}}
+host = 2004
+{{end}}
+timeout = 15
+# Batch size for pickled metrics
+{{if exists "/diamond/handler/graphitepickle/batch"}}
+batch = {{getv "/diamond/handler/graphitepickle/batch"}}
+{{else}}
+batch = 256
+{{end}}
+{{end}}
+
+
+################################################################################
+### Options for collectors
+[collectors]
+
+[[default]]
+### Defaults options for all Collectors
+
+# Uncomment and set to hardcode a hostname for the collector path
+# Keep in mind, periods are seperators in graphite
+# hostname = my_custom_hostname
+{{if exists "/diamond/collectors/hostname"}}
+hostname = {{ getv "/diamond/collectors/hostname" }}
+{{end}}
+
+# Path Prefix and Suffix
+# you can use one or both to craft the path where you want to put metrics
+# such as: %(path_prefix)s.$(hostname)s.$(path_suffix)s.$(metric)s
+# path_prefix = servers
+# path_suffix =
+{{if exists "/diamond/collectors/pathprefix"}}
+path_prefix = {{ getv "/diamond/collectors/pathprefix" }}
+{{end}}
+{{if exists "/diamond/collectors/pathsuffix"}}
+path_suffix = {{ getv "/diamond/collectors/pathsuffix" }}
+{{end}}
+
+# Path Prefix for Virtual Machines
+# If the host supports virtual machines, collectors may report per
+# VM metrics. Following OpenStack nomenclature, the prefix for
+# reporting per VM metrics is "instances", and metric foo for VM
+# bar will be reported as: instances.bar.foo...
+# instance_prefix = instances
+{{if exists "/diamond/collectors/instanceprefix"}}
+instance_prefix = {{ getv "/diamond/collectors/instanceprefix" }}
+{{end}}
+
+# Default Poll Interval (seconds)
+{{if exists "/diamond/collectors/interval"}}
+interval = {{ getv "/diamond/collectors/interval" }}
+{{else}}
+interval = 60
+{{end}}
+
+
+################################################################################
+### Options for logging
+# for more information on file format syntax:
+# http://docs.python.org/library/logging.config.html#configuration-file-format
+
+[loggers]
+keys = root
+
+[formatters]
+keys = default
+
+[logger_root]
+# to increase verbosity, set DEBUG
+level = INFO
+handlers = rotated_file
+propagate = 1
+
+[handler_rotated_file]
+class = handlers.TimedRotatingFileHandler
+level = INFO
+formatter = default
+# rotate at midnight, each day and keep 1 days
+args = ('/var/log/diamond/diamond.log', 'midnight', 1, 1)
+
+[formatter_default]
+format = [%(asctime)s] [%(threadName)s] %(message)s
+datefmt = '%Y-%m-%d %H:%M:%S'

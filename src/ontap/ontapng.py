@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 #
-# (c) 2013, Jose Riguera Lopez, <jose.riguera@springer.com>
+# (c) 2013-2015, Jose Riguera Lopez, <jose.riguera@springer.com>
 #
 # This plugin/program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as published
@@ -58,17 +58,17 @@ enabled = True
 path_prefix = netapp
 reconnect = 60
 hostname_method = none
-method = Threaded           # Sequential or Threaded (per device)
 splay = 15
 interval = 45               # sleep time
 http_timeout = 45           # timeout
 
-    [devices]
+[devices]
 
     [[cluster]]
     ip = 123.123.123.123
     user = root
     password = strongpassword
+    apiversion = 1.15
     publish = 1   # 1 = publish all metrics
                   # 2 = do not publish zeros
                   # 0 = do not publish
@@ -98,8 +98,9 @@ https://communities.netapp.com/docs/DOC-1044
 class OntapClusterCollector(Collector):
 
     def __init__(self, *args, **kwargs):
-        """Return OntapCollector instance
-        Create a new instance of the Ontap Collector class
+        """Creates a new instance of the Ontap Collector class.
+
+        Returns a OntapCollector instance.
         """
         # Thread safe due to the double dict structure [device][item]
         self.last_values = {}
@@ -110,38 +111,49 @@ class OntapClusterCollector(Collector):
         self.metrics = {}
         super(OntapClusterCollector, self).__init__(*args, **kwargs)
 
+
     def get_default_config_help(self):
-        """Returns the help text for the collector configuration options"""
+        """Help text for the collector configuration options.
+
+        Adds the explanation for the specific parameters for this collector.
+        """
         config_help = super(
             OntapClusterCollector, self).get_default_config_help()
         config_help.update({
             'reconnect':    'Number of iterations for reconnecting',
             'http_timeout': 'Http Timeout for every connection',
             'path_prefix':  'Prefix for device.instance.metric',
-            'method':       'Jobs scheduler: Sequential or Threaded',
             'interval':     'Interval',
         })
         return config_help
 
+
     def get_default_config(self):
-        """Return the default config for the collector"""
+        """Creates default base config for the collector (without devices).
+
+        Returns the default config.
+        """
         default_config = super(
             OntapClusterCollector, self).get_default_config()
         default_config.update({
             'path_prefix':      'netapp',
             'reconnect':        60,
             'hostname_method':  'none',
-            'method':           'Threaded',
-            'interval':         45,
-            'http_timeout':     40,
+            'interval':         60,
+            'http_timeout':     30,
+            'measure_collector_time': False
         })
         return default_config
 
-    def _connect(self, to=None):
-        """Return the conection(s) to the device or to all configured devices.
-        Make a connection to the NetAPP server if it is specified
-        or to all servers. Return the connection object.
 
+    def _connect(self, to=None):
+        """Creates a connetion to the device or devices.
+
+        Makes a connection to the NetAPP server if to is specified
+        or to configured all servers. Also, it will force a reconnection
+        to the server(s) each 'reconnect' times that this function is called.
+
+        Returns the conection(s) to the device or all configured devices.
         """
         if to and to in self.connections:
             counter = self.reconnects[to]
@@ -155,20 +167,22 @@ class OntapClusterCollector(Collector):
             if to is None or to == device:
                 try:
                     server = NetAppMetrics(
-                        c['ip'], c['user'], c['password'],
+                        c['ip'], c['user'], c['password'], c['apiversion'],
                         self.config['http_timeout'])
                     self.reconnects[device] = int(self.config['reconnect'])
                     self.connections[device] = server
                 except (KeyError, ValueError) as e:
                     msg = "Incorrect device '%s' configuration: '%s'"
                     self.log.error(msg, device, str(e))
+                    raise
                 else:
                     self.log.info("Connected to device '%s'", device)
         if to is None:
             return self.connections
         return self.connections[to]
 
-    def __get_metric(self, metric, info_metrics, label, publish=True):
+
+    def __get_metric(self, device, metric, info_metrics, label, publish=True):
         """Maps each kind of metric with a number and work out the label.
 
         Where:
@@ -177,8 +191,7 @@ class OntapClusterCollector(Collector):
             label: new label of the metric
             publish: True if it will be published
 
-        Return a tuple with:
-            (pretty, unit, prop, base, priv, publish)
+        Returns a tuple with: (pretty, unit, prop, base, priv, publish)
         """
         (unit, prop, base, priv, desc, labels) = info_metrics[metric]
         if prop.startswith('raw'):
@@ -216,13 +229,15 @@ class OntapClusterCollector(Collector):
             pretty = [label]
         return (pretty, unit, prop_type, base, priv, publish)
 
+
     def get_metrics(self, device, server):
-        """Parses all items defined in the configuration file and
+        """Gets all the type of metrics from the device.
+
+        Parses all items defined in the configuration file and
         fills a dict of metrics for the device.
 
-        Get a all defined metrics from the configuration file for the device
-        (and also all of the dependent metrics)
-
+        Gets all defined type of metrics from the configuration file
+        for the device (and also all of the dependent metrics)
         """
         match_var = re.compile(r'\$([\w_-]+)')
         match_var_b = re.compile(r'\${([\w_-]+)}')
@@ -251,7 +266,6 @@ class OntapClusterCollector(Collector):
                 na_object_pretty,
                 na_object_filter
             )
-
             # Get all metrics from the object
             try:
                 info_metrics = server.get_info(na_object_name)
@@ -269,6 +283,7 @@ class OntapClusterCollector(Collector):
                 try:
                     (pretty, unit, prop, base, priv, publish) = \
                         self.__get_metric(
+                            device,
                             metric,
                             info_metrics,
                             cobj_metrics[metric],
@@ -287,7 +302,12 @@ class OntapClusterCollector(Collector):
                 if metric not in obj_metrics:
                     try:
                         obj_metrics[metric] = self.__get_metric(
-                            metric, info_metrics, metric, False)
+                            device,
+                            metric,
+                            info_metrics,
+                            metric,
+                            False
+                        )
                         counter_metrics += 1
                     except:
                         msg = "Not found metric '%s' for '%s'"
@@ -297,7 +317,12 @@ class OntapClusterCollector(Collector):
                 if metric not in obj_metrics:
                     try:
                         obj_metrics[metric] = self.__get_metric(
-                            metric, info_metrics, None, False)
+                            device,
+                            metric,
+                            info_metrics,
+                            None,
+                            False
+                        )
                         counter_metrics += 1
                     except:
                         msg = "Not found metric '%s' for '%s'"
@@ -307,19 +332,22 @@ class OntapClusterCollector(Collector):
         self.log.info("%d metrics for '%s'", counter_metrics, device)
         return counter_metrics
 
-    def get_schedule(self):
-        """Return a schedule for each filer/device.
 
-        Override Collector.get_schedule, and create one per filer (device).
+    def process_config(self):
+        """Process the configuration to enable/disable devices.
 
+        Updates the internal structures of the collector.
         """
-        schedule = {}
+        if NaServer is None:
+            self.log.error("Unable to import NetApp python API!")
+            return
+        super(OntapClusterCollector, self).process_config()
         if 'devices' in self.config:
             for device in self.config['devices']:
-                # To be thread safe
-                self.last_collect_time[device] = {}
-                self.last_values[device] = {}
-                self.dev_running[device] = False
+                if device not in self.dev_running:
+                    self.last_collect_time[device] = {}
+                    self.last_values[device] = {}
+                    self.dev_running[device] = False
                 try:
                     server = self._connect(device)
                     self.get_metrics(device, server)
@@ -338,144 +366,160 @@ class OntapClusterCollector(Collector):
                     )
                 interval = int(self.config['interval'])
                 splay = int(self.config['splay'])
-                # Get Task Name
-                task = "_".join([self.__class__.__name__, device])
-                # Check if task is already in schedule
-                if task in schedule:
-                    raise KeyError("Duplicate device scheduled")
-                schedule[task] = (
-                    self.collect, (device, interval, publish),
-                    splay, interval
-                )
                 self.log.info(
-                    "Set up scheduler for '%s': splay=%s, interval=%s",
+                    "Loading configuration for '%s': splay=%s, interval=%s",
                     device,
                     splay,
                     interval
                 )
-        return schedule
-
-    def collect(self, device, interval, publish):
-        """
-        This function collects the metrics for one filer/device.
-        It runs every time is called by the scheduler for each device.
-
-        """
-        if NaServer is None:
-            self.log.error("Unable to import NetApp python API!")
-            return
-        if self.dev_running[device]:
-            m = "Cannot start metrics collection for '%s', another "
-            m += "thread is running (http_timeout=%i)"
-            self.log.error(m % (device, self.config['http_timeout']))
-            return
-        self.dev_running[device] = True
-        server = self._connect(device)
-        max_interval = interval + interval * 0.5
-        self.log.info("Starting metrics collection for '%s'" % device)
-        total_records = 0
-        try:
-            # We're only able to query a single object at a time,
-            # so we'll loop over the objects.
-            for na_object, metrics in self.metrics[device].iteritems():
-                # na_object.name
-                # na_object.pretty
-                # na_object.filter
-                try:
-                    instances = server.get_instances(
-                        na_object.name, na_object.filter)
-                    if instances:
-                        values, times, instance_t = server.get_metrics(
-                            na_object.name, instances, metrics.keys())
-                    else:
-                        self.log.error(
-                            "No metrics '%s' with filter '%s' on %s",
-                            na_object.name,
-                            na_object.filter,
-                            device
-                        )
-                        continue
-                except IOError as e:
-                    self.log.error(
-                        "Cannot connect to '%s': %s",
-                        device,
-                        str(e)
-                    )
-                    continue
-                # Process the records
-                records_counter = 0
-                for instance, data in values.iteritems():
-                    metrics_path = device
-                    for item in na_object.pretty.split('.'):
-                        try:
-                            item = item.replace('@', instance)
-                            mtemplate = Template(item)
-                            item = mtemplate.safe_substitute(data)
-                            item = item.replace('.', '_').strip('_')
-                            item = item.replace('/', '.').strip('.')
-                            metrics_path += '.' + re.sub(
-                                r'[^a-zA-Z0-9._]',
-                                '_',
-                                item
-                            )
-                        except Exception as e:
-                            self.log.error(
-                                "Cannot build metric name '%s' on '%s': %s",
-                                na_object.pretty,
-                                device,
-                                str(e)
-                            )
-                    # time delta
-                    try:
-                        old_time = self.last_collect_time[device][metrics_path]
-                    except:
-                        time_delta = 0
-                    else:
-                        time_delta = instance_t - old_time
-                        if time_delta <= 0:
-                            self.log.warning(
-                                "**time-delta <= 0s** for %s (from the API)!",
-                                metrics_path)
-                            time_delta = times[instance] - old_time
-                        if max_interval < time_delta:
-                            self.log.warning(
-                                ("**too much time** between collects"
-                                    " '%s': %s s"),
-                                metrics_path, time_delta)
-                    self.last_collect_time[device][metrics_path] = instance_t
-                    # self.last_collect_time[device][metrics_path] = \
-                    #   times[instance]
-
-                    # process all metrics
-                    records_counter += self._publish_metrics(
-                        device, instance, metrics_path,
-                        data, time_delta, metrics, publish)
-                # control the number of records
-                if records_counter == 0:
-                    self.log.error(
-                        "No instances for object '%s' on '%s'",
-                        na_object,
-                        device
-                    )
-                total_records += records_counter
-        except Exception as e:
-            self.log.error(str(e))
+            deleted = []
+            for device in self.dev_running:
+                if device not in self.config['devices']:
+                    deleted.append(device)
+            for device in deleted:
+                del self.dev_running[device]
+                del self.last_collect_time[device]
+                del self.last_values[device]
+                del self.metrics[device]
+                del self.connections[device]
+                del self.reconnects[device]
+                self.log.info("Deleted device: '%s'", device)
         else:
+            self.log.error("[devices] not found in the configuration")
+            self.config['devices'] = []
+
+
+    def collect(self):
+        """Collects the metrics.
+
+        Diamond calls this funtion to collect the metrics. Starting on Diamond
+        v4.0 due to the changes in the threading model, only sequencial device
+        processingis possible. Now, the way to go is by creating different
+        configuration files, one per NetApp device and Diamond will schedule
+        each one in a different process.
+        """
+        interval = int(self.config['interval'])
+        for device in self.config['devices']:
+            if self.dev_running[device]:
+                self.log.error(
+                    "Cannot start metrics collection for '%s', another " \
+                    "thread is running (http_timeout=%i)",
+                    device, 
+                    self.config['http_timeout']
+                )
+                return
+            self.dev_running[device] = True
+            self.log.info("Starting metrics collection for '%s'", device)
+            try:
+                publish = int(self.config['devices'][device]['publish'])
+                records = self.collect_device( device, interval, publish)
+            except Exception as e:
+                self.log.error(str(e))
             self.log.info(
                 "End collection for '%s' (%i metrics processed)",
                 device,
-                total_records
+                records
             )
-        self.dev_running[device] = False
-        # end for each device
+            self.dev_running[device] = False
+
+
+    def collect_device(self, device, interval, publish):
+        """Collects the metrics for one filer/device.
+
+        Returns the number of metrics processed.
+        """
+        max_interval = interval + interval * 0.5
+        total_records = 0
+        server = self._connect(device)
+        # We're only able to query a single object at a time,
+        # so we'll loop over the objects.
+        for na_object, metrics in self.metrics[device].iteritems():
+            # na_object.name
+            # na_object.pretty
+            # na_object.filter
+            try:
+                instances = server.get_instances(
+                    na_object.name, na_object.filter)
+                if instances:
+                    values, times, instance_t = server.get_metrics(
+                        na_object.name, instances, metrics.keys())
+                else:
+                    self.log.error(
+                        "No metrics '%s' with filter '%s' on %s",
+                        na_object.name,
+                        na_object.filter,
+                        device
+                    )
+                    continue
+            except IOError as e:
+                self.log.error("Cannot connect to '%s': %s", device, str(e))
+                continue
+            # Process the records
+            records_counter = 0
+            for instance, data in values.iteritems():
+                metrics_path = device
+                for item in na_object.pretty.split('.'):
+                    try:
+                        item = item.replace('@', instance)
+                        mtemplate = Template(item)
+                        item = mtemplate.safe_substitute(data)
+                        item = item.replace('.', '_').strip('_')
+                        item = item.replace('/', '.').strip('.')
+                        metrics_path += '.' + re.sub(
+                            r'[^a-zA-Z0-9._]',
+                            '_',
+                            item
+                        )
+                    except Exception as e:
+                        self.log.error(
+                            "Cannot build metric name '%s' on '%s': %s",
+                            na_object.pretty,
+                            device,
+                            str(e)
+                        )
+                # time delta
+                try:
+                    old_time = self.last_collect_time[device][metrics_path]
+                except:
+                    time_delta = 0
+                else:
+                    time_delta = instance_t - old_time
+                    if time_delta <= 0:
+                        self.log.warning(
+                            "**time-delta <= 0s** for %s (from the API)!",
+                            metrics_path
+                        )
+                        time_delta = times[instance] - old_time
+                    if max_interval < time_delta:
+                        self.log.warning(
+                            "**too much time** between collects '%s': %s s",
+                            metrics_path, time_delta
+                        )
+                self.last_collect_time[device][metrics_path] = instance_t
+                #self.last_collect_time[device][metrics_path] = \
+                #   times[instance]
+
+                # process all metrics
+                records_counter += self._publish_metrics(
+                    device, instance, metrics_path,
+                    data, time_delta, metrics, publish)
+            # control the number of records
+            if records_counter == 0:
+                self.log.error(
+                    "No instances for object '%s' on '%s'",
+                    na_object,
+                    device
+                )
+            total_records += records_counter
+        return total_records
+
 
     def _publish_metrics(self, device, instance, metrics_path, data,
                          time_delta, metrics, publish):
-        """Return number of processed metrics
-
-        Process and publish all metrics for an object.
+        """Process and publish all metrics for an object.
         If a value is an array, it will process each value.
 
+        Returns  number of processed metrics
         """
         counter = 0
         processed_values = {}
@@ -574,19 +618,18 @@ class OntapClusterCollector(Collector):
         processed_values = {}
         return counter
 
+
     def raw_metric(self, name, new):
-        """Return the value of the metric
+        """Raw metric calculator.
 
-        As it was collected, it is a raw metric
-
+        Returns the value of the metric as it was collected.
         """
         return new
 
+
     def derivative_metric(self, name, value, device,
                           time_delta=True, interval=None, max_value=0):
-        """Return the value of the metric
-
-        Calculate the derivative of the metric.
+        """Calculate the derivative of the metric.
 
         if it is a rate (time_delta=True)
         # metric - metric' / interval
@@ -598,7 +641,6 @@ class OntapClusterCollector(Collector):
                 metric = current value of metric
                 metric' = previous value of metric
                 interval = time delta between the two values
-
         """
         try:
             old = self.last_values[device][name]
@@ -617,22 +659,18 @@ class OntapClusterCollector(Collector):
                     derivative_y = float(self.config['interval'])
                 else:
                     derivative_y = interval
-
             result = derivative_x / derivative_y
-
         except Exception as e:
-            msg = "Previous value for '%s' not found!. First time?" % str(e)
+            msg = "Previous value for '%s' not found!. First time?"
             self.log.warning(msg, name)
             result = 0.0
         return result
 
+
     def _calc_derivative_refmetric(self, name, new, mult, ref_name,
                                    data, metrics, device, instance):
-        """Return the value of the metric
-
-        Prepare and calculate a derivate value of a metric depending on
+        """Prepare and calculate a derivate value of a metric depending on
         the values of another. It works with averages or percentages.
-
         """
         # mult * (metric - metric') / (ref_metric - ref_metric')
         try:
@@ -654,11 +692,10 @@ class OntapClusterCollector(Collector):
             mult
         )
 
+
     def derivative_refmetric(self, name, value, ref_name, ref_value, device,
                              pct=1.0, max_value=0.0):
-        """Return the value of the metric
-
-        Calculate a derivate value of a metric depending on the values
+        """Calculate a derivate value of a metric depending on the values
         of another.
 
         # pct * (metric - metric') / (ref_metric - ref_metric')
@@ -669,7 +706,6 @@ class OntapClusterCollector(Collector):
                 ref_metric = current value of the base metric
                 ref_metric' = previous value of the base metric
                 pct = value of the multiplier. 100 to get a percentage
-
         """
         try:
             old = self.last_values[device][name]
@@ -710,11 +746,11 @@ class OntapClusterCollector(Collector):
             result = 0.0
         return result
 
+
     def get_metric_path(self, name, instance=None):
-        """Return the metric path.
+        """Gets metric path.
 
-        Get metric path.
-
+        Returns the metric path.
         """
         value_list = []
         value = ''
@@ -736,25 +772,34 @@ class OntapClusterCollector(Collector):
         return '.'.join(value_list)
 
 
-# End of Plugin
+# End of Diamond Collector Plugin
 
 class NetAppMetrics:
 
     perf_max_records = 500
 
-    def __init__(self, device, user, password, timeout=None, vserver=''):
+    def __init__(self, device, user, password, 
+                 apiversion='1.12', timeout=None, vserver=''):
         self.vserver = None
         self.device = None
         self.clustered = False
         self.generation = '0'
         self.major = '0'
         self.minor = '0'
-        self._connect(device, user, password, timeout)
+        self.apimajor = 0
+        self.apiminor = 0
+        self._connect(device, user, password, apiversion, timeout)
         self._set_vserver(vserver)
         self._get_version()
 
-    def _connect(self, device, user, password, timeout=None, method='HTTP'):
-        self.server = NaServer.NaServer(device, 1, 15)
+    def _connect(self, device, user, password, apiversion, 
+                 timeout=None, method='HTTP'):
+        try:
+            self.apimajor = int(apiversion.split('.')[0])        
+            self.apiminor = int(apiversion.split('.')[1])
+        except:
+            raise ValueError("incorrect API version: '%s'" % apiversion)
+        self.server = NaServer.NaServer(device, self.apimajor, self.apiminor)
         self.server.set_transport_type(method)
         self.server.set_style('LOGIN')
         self.server.set_admin_user(user, password)
@@ -839,66 +884,40 @@ class NetAppMetrics:
         return counters
 
     def _invoke(self, cmd):
-        '''Expose underlying NetApp API for invoking'''
+        '''Exposes underlying NetApp API for invoking'''
         return self.server.invoke(cmd)
 
     def _invoke_elem(self, cmd):
-        '''Expose underlying NetApp API for element invoking'''
+        '''Exposes underlying NetApp API for element invoking'''
         if isinstance(cmd, NaServer.NaElement):
             return self.server.invoke_elem(cmd)
         raise TypeError('Provided cmd is not of type NaElement')
 
-    def _decode_elements2dict(self, head, filter=None):
-        '''This function is a function that can take the results from
-           an invoke call from the NetApp API and break it down to a
-           json-styled Python dict object.'''
-        if filter is not None and (
-                hasattr(
-                    filter, "__getitem__") or hasattr(filter, "__iter__")):
-            if hasattr(filter, "strip"):
-                filter = [filter]
-        elif filter is None:
-            pass
-        else:
-            raise TypeError('filter (%s) is of an unknown type!' % filter)
-
+    def _decode_elements2dict(self, head, listfilter=None, output={}):
+        '''Takes the results from an invoke call from the NetApp
+        API and break it down to a Python dict object.'''
+        if listfilter is not None:
+            if not (hasattr(listfilter, "__iter__") or
+                hasattr(filter, "__getitem__")):
+                raise TypeError('listfilter is no a iterable!')
         if head.has_children() == 1:
-            if sum([item.has_children() for item in head.children_get()]) == 0:
-                if filter is not None:
-                   return {
-                        head.element['name']: {
-                            item.element['name']: item.element['content']
-                            for item in head.children_get()
-                            if item.element['name'] in filter
-                        }
-                    }
+            aux = {}
+            for child in head.children_get():
+                if child.has_children() == 1:
+                    aux = self._decode_elements2dict(child, listfilter, aux)
                 else:
-                    return {
-                        head.element['name']: {
-                            item.element['name']: item.element['content']
-                            for item in head.children_get()
-                        }
-                    }
-            elif sum(
-                [
-                    item.has_children()
-                    for item in head.children_get()
-                    ]) == len(head.children_get()):
-                return [
-                    self._decode_elements2dict(item, filter)
-                    for item in head.children_get()
-                ]
-            else:
-                ans = {}
-                for item in head.children_get():
-                    if item.has_children() == 1:
-                        ans[item.element['name']] = \
-                          self._decode_elements2dict(item, filter)
-                    else:
-                        ans[item.element['name']] = item.element['content']
-                return ans
+                    if listfilter is not None and \
+                        child.element['name'] not in listfilter:
+                        continue;
+                    aux[child.element['name']] = child.element['content']
+            output[head.element['name']] = aux
         else:
-            return head.element
+            if listfilter is not None:
+                if child.element['name'] in listfilter:
+                    output[head.element['name']] = head.element['content']
+            else:
+                output[head.element['name']] = head.element['content']
+        return output
 
     def __sevenm_instances(self, kind, filter=''):
         instances_list = []
@@ -968,9 +987,11 @@ class NetAppMetrics:
                 raise ValueError(msg % (kind, reason))
             next_tag = res.child_get_string("next-tag")
             counter = res.child_get_string("num-records")
-            for inst in res.child_get("attributes-list").children_get():
-                name = inst.child_get_string("uuid")
-                instances_list.append(name)
+            attr_list = res.child_get("attributes-list")
+            if attr_list:
+                for inst in attr_list.children_get():
+                    name = inst.child_get_string("uuid")
+                    instances_list.append(name)
         return instances_list
 
     def get_instances(self, kind, filter=''):
@@ -1001,7 +1022,7 @@ class NetAppMetrics:
             name = name.replace('.', '_').strip('_')
             name = name.replace('/', '.').strip('.')
             name = re.sub(r'[^a-zA-Z0-9._]', '_', name)
-            # name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+            #name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
             metrics[name] = instance_data
             # Keep track of how long has passed since we checked last
             times[name] = time.time()
@@ -1103,7 +1124,7 @@ and info from NetApp devices. It supports 7-Mode anc C-Mode.
 Usage:
 
     {0} [-h | --help]
-    {0} -s <server> -u <user> -p <password> [action]
+    {0} [-v <api.version>] -s <server> -u <user> -p <password> [action]
 
 Where <action> could be:
 
@@ -1113,14 +1134,14 @@ Where <action> could be:
  * metrics <object> [instace]: returns all counters for all instances
    or if one instances is provided, only for that one.
 
-(c) Jose Riguera Lopez, November 2003
-<jose.riguera@springer.com>
+(c) Jose Riguera Lopez, 2013-2015 <jose.riguera@springer.com>
+
     """.format(program)
 
 
 def main(argv):
-    sort_ops = "hs:u:p:f:"
-    long_ops = ["help", "server=", "user=", "password=", "filter="]
+    sort_ops = "hv:s:u:p:f:"
+    long_ops = ["help", "api=", "server=", "user=", "password=", "filter="]
     try:
         opts, args = getopt.getopt(argv[1:], sort_ops, long_ops)
     except getopt.GetoptError as err:
@@ -1131,10 +1152,13 @@ def main(argv):
     user = ''
     password = ''
     filter = ''
+    apiversion = '1.12'
     for o, a in opts:
         if o in ("-h", "--help"):
             usage(argv[0])
             sys.exit()
+        elif o in ("-v", "--api"):
+            apiversion = a
         elif o in ("-s", "--server"):
             server = a
         elif o in ("-u", "--user"):
@@ -1146,7 +1170,7 @@ def main(argv):
     if not server or not user:
         usage(argv[0])
         sys.exit(2)
-    netapp = NetAppMetrics(server, user, password)
+    netapp = NetAppMetrics(server, user, password, apiversion)
     print(
             "Server=%s, version=%s.%s.%s, date=%s" % (
                 server,
