@@ -48,6 +48,11 @@ suggested them using a more elegant way to define instances like for example
 and they did not accept ... I do not see advantages using white spaces, I see it
 a way to look for problems, but it is my opinion.
 
+
+Branch 0.1.x and tags 0.1.x are designed for Diamond 3.x versions.
+Master, develop branchs (and tags 0.2.x and up) are to Diamond 4.x releases.
+
+
 SDK
 ===
 
