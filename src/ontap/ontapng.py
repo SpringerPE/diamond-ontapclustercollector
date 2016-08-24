@@ -404,7 +404,7 @@ class OntapClusterCollector(Collector):
                 self.log.error(
                     "Cannot start metrics collection for '%s', another " \
                     "thread is running (http_timeout=%i)",
-                    device, 
+                    device,
                     self.config['http_timeout']
                 )
                 return
@@ -415,6 +415,7 @@ class OntapClusterCollector(Collector):
                 records = self.collect_device( device, interval, publish)
             except Exception as e:
                 self.log.error(str(e))
+                records = 0
             self.log.info(
                 "End collection for '%s' (%i metrics processed)",
                 device,
